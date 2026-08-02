@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Priprava systemu
-        run: sudo apt-get update && sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync clang lld llvm libssl-dev gcc-aarch64-linux-gnu
+        run: sudo apt-get update && sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync clang lld llvm libssl-dev gcc-aarch64-linux-gnu libelf-dev
 
       - name: Stahování zdrojových kódů pres GitHub Checkout
         uses: actions/checkout@v4
@@ -21,7 +21,7 @@ jobs:
         run: |
           cd kernel
           
-          # Kompletní nastavení LLVM nástrojů (včetně LLVM=1 pro potlačení GCC závislostí)
+          # Kompletní nastavení LLVM nástrojů
           export ARCH=arm64
           export SUBARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
@@ -34,8 +34,14 @@ jobs:
           export OBJDUMP=llvm-objdump
           export STRIP=llvm-strip
           
-          echo "Konfiguruji architekturu Google Tensor přes LLVM/Clang..."
+          echo "Konfiguruji architekturu Google Tensor..."
           make gki_defconfig
           
-          echo "Spouštím samotnou kompilaci jádra..."
+          echo "Spouštím hlavní kompilaci jádra..."
           make -j$(nproc) Image
+
+      - name: Nahrání zkompilovaného jádra ke stažení
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pixel6-Linux-Kernel
+          path: kernel/arch/arm64/boot/Image
