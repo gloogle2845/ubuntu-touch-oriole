@@ -20,14 +20,14 @@ jobs:
           chmod a+x ~/bin/repo
           echo "$HOME/bin" >> $GITHUB_PATH
 
-      - name: Inicializace zdrojového stromu Halium 11
+      - name: Inicializace zdrojového stromu (LineageOS 19.1 základ)
         run: |
           git config --global user.name "Pixel 6 Porter"
           git config --global user.email "porter@pixel6.com"
           mkdir halium && cd halium
-          repo init -u https://github.com -b halium-11.0 --depth=1
+          repo init -u https://github.com -b lineage-19.1 --depth=1
 
-      - name: Přidání zdrojových kódů Pixel 6 (Experimentální)
+      - name: Přidání zdrojových kódů Pixel 6 a Halium záplat
         run: |
           cd halium
           mkdir -p .repo/local_manifests
@@ -36,6 +36,7 @@ jobs:
           <manifest>
             <project path="kernel/google/gs101" name="LineageOS/android_kernel_google_gs101" remote="github" revision="lineage-19.1" clone-depth="1" />
             <project path="device/google/oriole" name="LineageOS/android_device_google_oriole" remote="github" revision="lineage-19.1" clone-depth="1" />
+            <project path="halium/hybris-boot" name="Halium/hybris-boot" remote="github" revision="halium-11.0" clone-depth="1" />
           </manifest>
           EOF
 
@@ -44,23 +45,10 @@ jobs:
           cd halium
           repo sync -c -j$(nproc) --no-clone-bundle --no-tags
 
-      - name: Spuštění buildu Halium
+      - name: Spuštění buildu Halium Jádra
         run: |
           cd halium
-          # Výpis složek pro kontrolu struktury Halia
-          ls -la
-          
-          # Halium často používá k inicializaci své vlastní skripty, zkusíme je vyhledat
-          if [ -f halium/devices/setup ]; then
-              ./halium/devices/setup oriole
-          elif [ -f build/envsetup.sh ]; then
-              source build/envsetup.sh
-              breakfast oriole || echo "Breakfast selhal"
-          else
-              echo "Standardní inicializační skripty nenalezeny. Kontrola složky device..."
-              ls -la device/google/oriole || echo "Složka device neexistuje"
-          fi
-          
-          # Pokus o kompilaci (pokud prostředí dovolí)
+          source build/envsetup.sh
+          breakfast oriole || echo "Breakfast selhal, budeme muset vytvořit vlastní mix"
           export USE_HOST_LEX=yes
-          mka halium-boot || echo "Přímý build přes mka selhal, bude potřeba upravit postup"
+          mka bootimage || echo "Standardní bootimage build selhal"
