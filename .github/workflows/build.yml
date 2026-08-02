@@ -1,7 +1,7 @@
 name: Build Halium pro Pixel 6
 
 on:
-  workflow_dispatch: # Spuštění ručně tlačítkem
+  workflow_dispatch:
 
 jobs:
   build:
@@ -11,24 +11,19 @@ jobs:
       - name: Instalace vývojářských nástrojů a moderních kompilátorů
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync
-          # Instalace LLVM/Clang, které Pixel 6 kernel vyžaduje ke kompilaci
-          sudo apt-get install -y clang lld llvm
+          sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync clang lld llvm
 
       - name: Stažení zdrojového kódu kernelu Pixel 6
         run: |
-          git clone --depth=1 -b lineage-20 https://github.com kernel
+          git clone --depth=1 -b "lineage-20" "https://github.com" kernel
 
       - name: Stažení Halium nástrojů
         run: |
-          # Opravený přímý zápis adresy pro hybris-boot
-          git clone --depth=1 https://github.com halium-boot
+          git clone --depth=1 "https://github.com" halium-boot
 
       - name: Kompilace samostatného Linuxového Jádra
         run: |
           cd kernel
-          
-          # Nastavení prostředí pro kompilaci pomocí moderního Clang (LLVM)
           export ARCH=arm64
           export SUBARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
@@ -39,11 +34,9 @@ jobs:
           export OBJCOPY=llvm-objcopy
           export OBJDUMP=llvm-objdump
           export STRIP=llvm-strip
-          
-          echo "Konfiguruji kernel pro Pixel 6..."
+          echo "Konfiguruji kernel..."
           make gki_defconfig
-          
-          echo "Spouštím samotnou kompilaci jádra..."
+          echo "Spouštím kompilaci..."
           make -j$(nproc) Image.lz4 || make -j$(nproc) Image
 
       - name: Nahrání hotového jádra (Artifacts)
