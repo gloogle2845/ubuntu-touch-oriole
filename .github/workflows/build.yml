@@ -1,32 +1,24 @@
-name: Build Halium pro Pixel 6
+nname: Build Halium Pixel 6 Final
 
 on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build_kernel:
     runs-on: ubuntu-22.04
-
     steps:
-      - name: Instalace vývojářských nástrojů a moderních kompilátorů
+      - name: Prvni krok instalace
         run: |
           sudo apt-get update
           sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync clang lld llvm
 
-      - name: Stažení zdrojového kódu kernelu Pixel 6
-        env:
-          KERNEL_URL: https://github.com
-          BRANCH_NAME: lineage-20
-        run: |
-          git clone --depth=1 -b $BRANCH_NAME $KERNEL_URL kernel
+      - name: Stazeni kernelu na jednom radku
+        run: git clone --depth=1 -b lineage-20 https://github.com kernel
 
-      - name: Stažení Halium nástrojů
-        env:
-          HALIUM_URL: https://github.com
-        run: |
-          git clone --depth=1 $HALIUM_URL halium-boot
+      - name: Stazeni halium boot
+        run: git clone --depth=1 https://github.com halium-boot
 
-      - name: Kompilace samostatného Linuxového Jádra
+      - name: Kompilace jadra
         run: |
           cd kernel
           export ARCH=arm64
@@ -39,9 +31,5 @@ jobs:
           export OBJCOPY=llvm-objcopy
           export OBJDUMP=llvm-objdump
           export STRIP=llvm-strip
-          
-          echo "Konfiguruji architekturu Google Tensor..."
           make arch/arm64/configs/gki_defconfig
-          
-          echo "Spouštím kompilaci jádra..."
           make -j$(nproc) Image
