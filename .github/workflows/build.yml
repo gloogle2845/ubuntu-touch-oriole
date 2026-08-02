@@ -15,8 +15,8 @@ jobs:
 
       - name: Stažení zdrojového kódu kernelu Pixel 6
         run: |
-          # Použijeme stabilnější větev lineage-21 (Android 14) pro Pixel 6
-          git clone --depth=1 -b lineage-21 https://github.com/LineageOS/android_kernel_google_gs101 kernel
+          # Použijeme garantovanou větev lineage-19.1 pro oriole
+          git clone --depth=1 -b lineage-19.1 https://github.com/LineageOS/android_kernel_google_gs101 kernel
 
       - name: Stažení Halium nástrojů
         run: |
@@ -31,9 +31,9 @@ jobs:
           export CROSS_COMPILE=aarch64-linux-gnu-
           
           echo "Konfiguruji kernel pro Pixel 6..."
-          # LineageOS používá pro Google Tensor (Pixel 6) konfiguraci gki_defconfig
+          # Generování výchozí konfigurace pro Google Tensor architekturu
           make gki_defconfig
           
           echo "Spouštím samotnou kompilaci jádra..."
-          # Spustíme samotný build čistého linuxového jádra
+          # Spustíme samotný build čistého linuxového jádra do formátu Image.lz4
           make -j$(nproc) Image.lz4
