@@ -15,8 +15,8 @@ jobs:
 
       - name: Stažení zdrojového kódu kernelu Pixel 6
         run: |
-          # Použijeme garantovanou větev lineage-19.1 pro oriole
-          git clone --depth=1 -b lineage-19.1 https://github.com/LineageOS/android_kernel_google_gs101 kernel
+          # Použijeme oficiální a ověřenou větev lineage-20 pro Google Tensor GS101
+          git clone --depth=1 -b lineage-20 https://github.com/LineageOS/android_kernel_google_gs101 kernel
 
       - name: Stažení Halium nástrojů
         run: |
@@ -35,5 +35,13 @@ jobs:
           make gki_defconfig
           
           echo "Spouštím samotnou kompilaci jádra..."
-          # Spustíme samotný build čistého linuxového jádra do formátu Image.lz4
-          make -j$(nproc) Image.lz4
+          # Spustíme samotný build linuxového jádra
+          make -j$(nproc) Image.lz4 || make -j$(nproc) Image
+
+      - name: Nahrání hotového jádra (Artifacts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixel6-kernel-output
+          path: |
+            kernel/arch/arm64/boot/Image
+            kernel/arch/arm64/boot/Image.lz4
