@@ -15,11 +15,11 @@ jobs:
 
       - name: Stažení zdrojového kódu kernelu Pixel 6
         run: |
-          git clone --depth=1 -b "lineage-20" "https://github.com" kernel
+          git clone --depth=1 -b lineage-20 https://github.com/LineageOS/android_kernel_google_gs101 kernel
 
       - name: Stažení Halium nástrojů
         run: |
-          git clone --depth=1 "https://github.com" halium-boot
+          git clone --depth=1 https://github.com halium-boot
 
       - name: Kompilace samostatného Linuxového Jádra
         run: |
@@ -34,15 +34,9 @@ jobs:
           export OBJCOPY=llvm-objcopy
           export OBJDUMP=llvm-objdump
           export STRIP=llvm-strip
+          
           echo "Konfiguruji kernel..."
           make gki_defconfig
+          
           echo "Spouštím kompilaci..."
-          make -j$(nproc) Image.lz4 || make -j$(nproc) Image
-
-      - name: Nahrání hotového jádra (Artifacts)
-        uses: actions/upload-artifact@v4
-        with:
-          name: pixel6-kernel-output
-          path: |
-            kernel/arch/arm64/boot/Image
-            kernel/arch/arm64/boot/Image.lz4
+          make -j$(nproc) Image
