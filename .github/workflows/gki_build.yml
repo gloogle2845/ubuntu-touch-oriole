@@ -1,4 +1,4 @@
-nname: Konecne funkcni build Pixel 6
+name: Konecne funkcni build Pixel 6
 
 on:
   workflow_dispatch:
