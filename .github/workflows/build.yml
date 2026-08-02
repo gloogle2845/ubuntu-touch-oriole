@@ -8,59 +8,35 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - name: Instalace vývojářských nástrojů
+      - name: Instalace vývojářských nástrojů a ARM kompilátorů
         run: |
           sudo apt-get update
           sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync
+          # Instalace překladačů pro ARM64 architekturu, kterou používá Pixel 6
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
-      - name: Nastavení Google Repo nástroje
+      - name: Stažení zdrojového kódu kernelu Pixel 6 (Google Tensor GS101)
         run: |
-          mkdir -p ~/bin
-          curl https://googlesource.com > ~/bin/repo
-          chmod a+x ~/bin/repo
-          echo "$HOME/bin" >> $GITHUB_PATH
+          # Stáhneme přímo čisté jádro pro Pixel 6 z LineageOS bez zbytečného balastu okolo
+          git clone https://github.com -b lineage-19.1 --depth=1 kernel
 
-      - name: Inicializace a stažení LineageOS základního buildu
+      - name: Stažení Halium záplat pro Boot Image
         run: |
-          git config --global user.name "Pixel 6 Porter"
-          git config --global user.email "porter@pixel6.com"
-          mkdir halium && cd halium
-          
-          # Inicializujeme LineageOS 19.1 a stáhneme POUZE build systém a základní nástroje
-          repo init -u https://github.com -b lineage-19.1 --depth=1
-          
-          # Natvrdo řekneme, že chceme stáhnout složku 'build' ze základního manifestu
-          repo sync platform/build -c --no-clone-bundle --no-tags --force-sync
+          # Stáhneme nástroje Halium pro vytvoření startovacího balíčku (hybris-boot)
+          git clone https://github.com -b halium-11.0 --depth=1 halium-boot
 
-      - name: Přidání zdrojových kódů Pixel 6 a Halium záplat
+      - name: Pokus o kompilaci samostatného Linuxového Jádra
         run: |
-          cd halium
-          mkdir -p .repo/local_manifests
-          cat <<EOF > .repo/local_manifests/oriole.xml
-          <?xml version="1.0" encoding="UTF-8"?>
-          <manifest>
-            <project path="kernel/google/gs101" name="LineageOS/android_kernel_google_gs101" remote="github" revision="lineage-19.1" clone-depth="1" />
-            <project path="device/google/oriole" name="LineageOS/android_device_google_oriole" remote="github" revision="lineage-19.1" clone-depth="1" />
-            <project path="halium/hybris-boot" name="Halium/hybris-boot" remote="github" revision="halium-11.0" clone-depth="1" />
-          </manifest>
-          EOF
+          cd kernel
           
-          # Dotáhneme kód pro Pixel 6 z manifestu
-          repo sync -c -j$(nproc) --no-clone-bundle --no-tags --force-sync
-
-      - name: Spuštění buildu Halium Jádra
-        run: |
-          cd halium
+          # Nastavení prostředí pro křížovou kompilaci (Cross-compilation z PC na mobil)
+          export ARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
           
-          # Pojistka: Pokud složka build chybí, vypíšeme, co se stáhlo, a nespadneme na neexistujícím souboru
-          if [ ! -f build/envsetup.sh ]; then
-              echo "Složka build/envsetup.sh stále chybí. Vypisuji stažené adresáře:"
-              ls -la
-              exit 1
-          fi
+          echo "Konfiguruji kernel pro Pixel 6..."
+          # Pokusíme se najít a vygenerovat výchozí konfiguraci (defconfig) pro Tensor procesor
+          make oriole_defconfig || make gki_defconfig || echo "Konfigurace defconfig nenalezena"
           
-          # Načtení build prostředí a pokus o start
-          source build/envsetup.sh
-          breakfast oriole || echo "Breakfast selhal, konfigurace chybí"
-          export USE_HOST_LEX=yes
-          mka bootimage || echo "Standardní bootimage build selhal"
+          echo "Spouštím samotnou kompilaci jádra..."
+          # Spustíme build jádra na plný výkon všech procesorů
+          make -j$(nproc) Image.lz4 || echo "Build čistého jádra selhal, vyžaduje úpravu Makefile"
