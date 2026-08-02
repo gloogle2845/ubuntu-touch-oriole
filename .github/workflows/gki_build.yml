@@ -35,7 +35,7 @@ jobs:
           export STRIP=llvm-strip
           
           echo "Konfiguruji architekturu Google Tensor přes LLVM/Clang..."
-          make arch/arm64/configs/gki_defconfig
+          make gki_defconfig
           
           echo "Spouštím samotnou kompilaci jádra..."
           make -j$(nproc) Image
