@@ -15,7 +15,7 @@ jobs:
 
       - name: Stažení zdrojového kódu kernelu Pixel 6
         run: |
-          git clone --depth=1 -b lineage-20 https://github.com/LineageOS/android_kernel_google_gs101 kernel
+          git clone --depth=1 -b lineage-20 https://github.com kernel
 
       - name: Stažení Halium nástrojů
         run: |
@@ -35,8 +35,9 @@ jobs:
           export OBJDUMP=llvm-objdump
           export STRIP=llvm-strip
           
-          echo "Konfiguruji kernel..."
-          make gki_defconfig
+          echo "Konfiguruji architekturu Google Tensor..."
+          # Načtení specifické konfigurace pro rodinu procesorů GS101
+          make arch/arm64/configs/gki_defconfig
           
-          echo "Spouštím kompilaci..."
+          echo "Spouštím kompilaci jádra..."
           make -j$(nproc) Image
