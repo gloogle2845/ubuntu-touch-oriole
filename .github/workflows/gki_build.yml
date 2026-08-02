@@ -1,4 +1,4 @@
-name: Konecne funkcni build Pixel 6
+nname: Konecne funkcni build Pixel 6
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Priprava systemu
-        run: sudo apt-get update && sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync clang lld llvm libssl-dev gcc-aarch64-linux-gnu libelf-dev
+        run: sudo apt-get update && sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync clang lld llvm libssl-dev gcc-aarch64-linux-gnu libelf-dev dwarves
 
       - name: Vytvoreni SWAP pameti v cloudu proti Error 137
         uses: pierotofy/set-swap-space@master
@@ -47,6 +47,11 @@ jobs:
           sed -i 's/CONFIG_LTO_CLANG_THIN=y/CONFIG_LTO_NONE=y/' .config
           sed -i '/CONFIG_LTO_CLANG/d' .config
           echo "CONFIG_LTO_NONE=y" >> .config
+          
+          echo "Vypinam CONFIG_DEBUG_INFO_BTF pro preskoceni pahole chyb..."
+          sed -i 's/CONFIG_DEBUG_INFO_BTF=y/CONFIG_DEBUG_INFO_BTF=n/' .config
+          sed -i '/CONFIG_DEBUG_INFO_BTF/d' .config
+          echo "CONFIG_DEBUG_INFO_BTF=n" >> .config
           
           # Potvrzení změn v konfiguraci
           make olddefconfig
