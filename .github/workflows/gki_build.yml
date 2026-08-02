@@ -26,7 +26,7 @@ jobs:
         run: |
           cd kernel
           
-          # Kompletní nastavení LLVM nástrojů
+          # Nastavení prostředí
           export ARCH=arm64
           export SUBARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
@@ -42,7 +42,16 @@ jobs:
           echo "Konfiguruji architekturu Google Tensor..."
           make gki_defconfig
           
-          echo "Spouštím bezpečnou kompilaci jádra (omezení na 2 vlákna)..."
+          echo "Vypinam LTO pres konfiguracní parametry..."
+          sed -i 's/CONFIG_LTO_CLANG_FULL=y/CONFIG_LTO_NONE=y/' .config
+          sed -i 's/CONFIG_LTO_CLANG_THIN=y/CONFIG_LTO_NONE=y/' .config
+          sed -i '/CONFIG_LTO_CLANG/d' .config
+          echo "CONFIG_LTO_NONE=y" >> .config
+          
+          # Potvrzení změn v konfiguraci
+          make olddefconfig
+          
+          echo "Spouštím bezpečnou kompilaci jádra..."
           make -j2 Image
 
       - name: Nahrání zkompilovaného jádra ke stažení
