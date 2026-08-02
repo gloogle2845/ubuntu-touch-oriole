@@ -47,7 +47,20 @@ jobs:
       - name: Spuštění buildu Halium
         run: |
           cd halium
-          source build/envsetup.sh
-          breakfast oriole || echo "Breakfast selhal, konfigurace chybí"
+          # Výpis složek pro kontrolu struktury Halia
+          ls -la
+          
+          # Halium často používá k inicializaci své vlastní skripty, zkusíme je vyhledat
+          if [ -f halium/devices/setup ]; then
+              ./halium/devices/setup oriole
+          elif [ -f build/envsetup.sh ]; then
+              source build/envsetup.sh
+              breakfast oriole || echo "Breakfast selhal"
+          else
+              echo "Standardní inicializační skripty nenalezeny. Kontrola složky device..."
+              ls -la device/google/oriole || echo "Složka device neexistuje"
+          fi
+          
+          # Pokus o kompilaci (pokud prostředí dovolí)
           export USE_HOST_LEX=yes
-          mka halium-boot || echo "Build halium-boot selhal"
+          mka halium-boot || echo "Přímý build přes mka selhal, bude potřeba upravit postup"
