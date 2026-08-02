@@ -8,34 +8,42 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - name: Instalace vývojářských nástrojů a ARM kompilátorů
+      - name: Instalace vývojářských nástrojů a moderních kompilátorů
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync
+          # Instalace LLVM/Clang, které Pixel 6 kernel vyžaduje ke kompilaci
+          sudo apt-get install -y clang lld llvm
 
       - name: Stažení zdrojového kódu kernelu Pixel 6
         run: |
-          # Použijeme oficiální a ověřenou větev lineage-20 pro Google Tensor GS101
-          git clone --depth=1 -b lineage-20 https://github.com/LineageOS/android_kernel_google_gs101 kernel
+          git clone --depth=1 -b lineage-20 https://github.com kernel
 
       - name: Stažení Halium nástrojů
         run: |
-          git clone --depth=1 -b halium-11.0 https://github.com halium-boot
+          # Opravený přímý zápis adresy pro hybris-boot
+          git clone --depth=1 https://github.com halium-boot
 
       - name: Kompilace samostatného Linuxového Jádra
         run: |
           cd kernel
           
-          # Nastavení prostředí pro křížovou kompilaci na ARM64
+          # Nastavení prostředí pro kompilaci pomocí moderního Clang (LLVM)
           export ARCH=arm64
+          export SUBARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
+          export CC=clang
+          export LD=ld.lld
+          export AR=llvm-ar
+          export NM=llvm-nm
+          export OBJCOPY=llvm-objcopy
+          export OBJDUMP=llvm-objdump
+          export STRIP=llvm-strip
           
           echo "Konfiguruji kernel pro Pixel 6..."
-          # Generování výchozí konfigurace pro Google Tensor architekturu
           make gki_defconfig
           
           echo "Spouštím samotnou kompilaci jádra..."
-          # Spustíme samotný build linuxového jádra
           make -j$(nproc) Image.lz4 || make -j$(nproc) Image
 
       - name: Nahrání hotového jádra (Artifacts)
