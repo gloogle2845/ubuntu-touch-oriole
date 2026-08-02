@@ -55,6 +55,7 @@ jobs:
               echo "Složka build chybí, opravuji stahováním přímo z Githubu..."
               rm -rf build
               git clone https://github.com -b lineage-19.1 build --depth=1
+
           fi
 
       - name: Spuštění buildu Halium Jádra
