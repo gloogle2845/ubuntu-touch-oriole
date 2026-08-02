@@ -1,4 +1,4 @@
-nname: Build Halium Pixel 6 Final
+name: Build Halium Pixel 6 Final
 
 on:
   workflow_dispatch:
