@@ -1,0 +1,53 @@
+name: Build Halium pro Pixel 6
+
+on:
+  workflow_dispatch: # Spuštění ručně tlačítkem
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Instalace vývojářských nástrojů
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync
+
+      - name: Nastavení Google Repo nástroje
+        run: |
+          mkdir -p ~/bin
+          curl https://googleapis.com > ~/bin/repo
+          chmod a+x ~/bin/repo
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Inicializace zdrojového stromu Halium 11
+        run: |
+          git config --global user.name "Pixel 6 Porter"
+          git config --global user.email "porter@pixel6.com"
+          mkdir halium && cd halium
+          repo init -u https://github.com -b halium-11.0 --depth=1
+
+      - name: Přidání zdrojových kódů Pixel 6 (Experimentální)
+        run: |
+          cd halium
+          mkdir -p .repo/local_manifests
+          cat <<EOF > .repo/local_manifests/oriole.xml
+          <?xml version="1.0" encoding="UTF-8"?>
+          <manifest>
+            <project path="kernel/google/gs101" name="LineageOS/android_kernel_google_gs101" remote="github" revision="lineage-19.1" clone-depth="1" />
+            <project path="device/google/oriole" name="LineageOS/android_device_google_oriole" remote="github" revision="lineage-19.1" clone-depth="1" />
+          </manifest>
+          EOF
+
+      - name: Synchronizace zdrojových kódů (Repo Sync)
+        run: |
+          cd halium
+          repo sync -c -j$(nproc) --no-clone-bundle --no-tags
+
+      - name: Spuštění buildu Halium
+        run: |
+          cd halium
+          source build/envsetup.sh
+          breakfast oriole || echo "Breakfast selhal, konfigurace chybí"
+          export USE_HOST_LEX=yes
+          mka halium-boot || echo "Build halium-boot selhal"
