@@ -12,11 +12,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync clang lld llvm
 
-      - name: Stazeni kernelu na jednom radku
-        run: git clone --depth=1 -b lineage-20 https://github.com kernel
+      - name: Zbrusu novy pokus bez orezani adresy
+        run: |
+          git clone --depth=1 -b lineage-20 https://github.com kernel
 
       - name: Stazeni halium boot
-        run: git clone --depth=1 https://github.com halium-boot
+        run: |
+          git clone --depth=1 https://github.com halium-boot
 
       - name: Kompilace jadra
         run: |
