@@ -1,0 +1,30 @@
+name: Konecne funkcni build Pixel 6
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Priprava systemu
+        run: sudo apt-get update && sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync clang lld llvm
+
+      - name: Stahování zdrojových kódů pres Git protokol
+        run: git clone --depth=1 -b lineage-20 git://://github.com kernel
+
+      - name: Konfigurace a stavba jadra
+        run: |
+          cd kernel
+          export ARCH=arm64
+          export SUBARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          export CC=clang
+          export LD=ld.lld
+          export AR=llvm-ar
+          export NM=llvm-nm
+          export OBJCOPY=llvm-objcopy
+          export OBJDUMP=llvm-objdump
+          export STRIP=llvm-strip
+          make arch/arm64/configs/gki_defconfig
+          make -j$(nproc) Image
