@@ -14,12 +14,17 @@ jobs:
           sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync clang lld llvm
 
       - name: Stažení zdrojového kódu kernelu Pixel 6
+        env:
+          KERNEL_URL: https://github.com
+          BRANCH_NAME: lineage-20
         run: |
-          git clone --depth=1 -b lineage-20 https://github.com kernel
+          git clone --depth=1 -b $BRANCH_NAME $KERNEL_URL kernel
 
       - name: Stažení Halium nástrojů
+        env:
+          HALIUM_URL: https://github.com
         run: |
-          git clone --depth=1 https://github.com halium-boot
+          git clone --depth=1 $HALIUM_URL halium-boot
 
       - name: Kompilace samostatného Linuxového Jádra
         run: |
@@ -36,7 +41,6 @@ jobs:
           export STRIP=llvm-strip
           
           echo "Konfiguruji architekturu Google Tensor..."
-          # Načtení specifické konfigurace pro rodinu procesorů GS101
           make arch/arm64/configs/gki_defconfig
           
           echo "Spouštím kompilaci jádra..."
