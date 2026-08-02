@@ -11,32 +11,29 @@ jobs:
       - name: Instalace vývojářských nástrojů a ARM kompilátorů
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync
-          # Instalace překladačů pro ARM64 architekturu, kterou používá Pixel 6
-          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+          sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
-      - name: Stažení zdrojového kódu kernelu Pixel 6 (Google Tensor GS101)
+      - name: Stažení zdrojového kódu kernelu Pixel 6
         run: |
-          # Stáhneme přímo čisté jádro pro Pixel 6 z LineageOS bez zbytečného balastu okolo
-          git clone https://github.com -b lineage-19.1 --depth=1 kernel
+          # Použijeme stabilnější větev lineage-21 (Android 14) pro Pixel 6
+          git clone --depth=1 -b lineage-21 https://github.com/LineageOS/android_kernel_google_gs101 kernel
 
-      - name: Stažení Halium záplat pro Boot Image
+      - name: Stažení Halium nástrojů
         run: |
-          # Stáhneme nástroje Halium pro vytvoření startovacího balíčku (hybris-boot)
-          git clone https://github.com -b halium-11.0 --depth=1 halium-boot
+          git clone --depth=1 -b halium-11.0 https://github.com halium-boot
 
-      - name: Pokus o kompilaci samostatného Linuxového Jádra
+      - name: Kompilace samostatného Linuxového Jádra
         run: |
           cd kernel
           
-          # Nastavení prostředí pro křížovou kompilaci (Cross-compilation z PC na mobil)
+          # Nastavení prostředí pro křížovou kompilaci na ARM64
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
           
           echo "Konfiguruji kernel pro Pixel 6..."
-          # Pokusíme se najít a vygenerovat výchozí konfiguraci (defconfig) pro Tensor procesor
-          make oriole_defconfig || make gki_defconfig || echo "Konfigurace defconfig nenalezena"
+          # LineageOS používá pro Google Tensor (Pixel 6) konfiguraci gki_defconfig
+          make gki_defconfig
           
           echo "Spouštím samotnou kompilaci jádra..."
-          # Spustíme build jádra na plný výkon všech procesorů
-          make -j$(nproc) Image.lz4 || echo "Build čistého jádra selhal, vyžaduje úpravu Makefile"
+          # Spustíme samotný build čistého linuxového jádra
+          make -j$(nproc) Image.lz4
