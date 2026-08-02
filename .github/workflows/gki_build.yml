@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Priprava systemu
-        run: sudo apt-get update && sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync clang lld llvm
+        run: sudo apt-get update && sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync clang lld llvm libssl-dev gcc-aarch64-linux-gnu
 
       - name: Stahování zdrojových kódů pres GitHub Checkout
         uses: actions/checkout@v4
@@ -20,9 +20,12 @@ jobs:
       - name: Konfigurace a stavba jadra
         run: |
           cd kernel
+          
+          # Kompletní nastavení LLVM nástrojů (včetně LLVM=1 pro potlačení GCC závislostí)
           export ARCH=arm64
           export SUBARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
+          export LLVM=1
           export CC=clang
           export LD=ld.lld
           export AR=llvm-ar
@@ -30,5 +33,9 @@ jobs:
           export OBJCOPY=llvm-objcopy
           export OBJDUMP=llvm-objdump
           export STRIP=llvm-strip
+          
+          echo "Konfiguruji architekturu Google Tensor přes LLVM/Clang..."
           make arch/arm64/configs/gki_defconfig
+          
+          echo "Spouštím samotnou kompilaci jádra..."
           make -j$(nproc) Image
