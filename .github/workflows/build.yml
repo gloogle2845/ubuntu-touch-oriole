@@ -25,7 +25,8 @@ jobs:
           git config --global user.name "Pixel 6 Porter"
           git config --global user.email "porter@pixel6.com"
           mkdir halium && cd halium
-          repo init -u https://github.com -b lineage-19.1 --depth=1
+          # Inicializujeme LineageOS 19.1
+          repo init -u https://github.com/LineageOS/android.git -b lineage-19.1 --depth=1
 
       - name: Přidání zdrojových kódů Pixel 6 a Halium záplat
         run: |
@@ -34,8 +35,11 @@ jobs:
           cat <<EOF > .repo/local_manifests/oriole.xml
           <?xml version="1.0" encoding="UTF-8"?>
           <manifest>
+            <!-- Kernel pro Google Tensor GS101 (Pixel 6) -->
             <project path="kernel/google/gs101" name="LineageOS/android_kernel_google_gs101" remote="github" revision="lineage-19.1" clone-depth="1" />
+            <!-- Konfigurace zařízení oriole -->
             <project path="device/google/oriole" name="LineageOS/android_device_google_oriole" remote="github" revision="lineage-19.1" clone-depth="1" />
+            <!-- Halium repozitář pro integraci Ubuntu Touch -->
             <project path="halium/hybris-boot" name="Halium/hybris-boot" remote="github" revision="halium-11.0" clone-depth="1" />
           </manifest>
           EOF
@@ -43,12 +47,28 @@ jobs:
       - name: Synchronizace zdrojových kódů (Repo Sync)
         run: |
           cd halium
-          repo sync -c -j$(nproc) --no-clone-bundle --no-tags
+          # Stažení základního manifestu
+          repo sync -c -j$(nproc) --no-clone-bundle --no-tags --force-sync
+          
+          # POJISTKA: Pokud repo sync vynechal složku build, stáhneme ji natvrdo ručně přes Git
+          if [ ! -f build/envsetup.sh ]; then
+              echo "Složka build chybí, opravuji stahováním přímo z Githubu..."
+              rm -rf build
+              git clone https://github.com -b lineage-19.1 build --depth=1
+          fi
 
       - name: Spuštění buildu Halium Jádra
         run: |
           cd halium
+          # Ověření, že už soubor fyzicky existuje
+          ls -l build/envsetup.sh
+          
+          # Načtení build prostředí
           source build/envsetup.sh
-          breakfast oriole || echo "Breakfast selhal, budeme muset vytvořit vlastní mix"
+          
+          # Inicializace konfigurace pro Pixel 6
+          breakfast oriole || echo "Breakfast selhal, budeme muset vytvořit vlastní konfiguraci"
+          
+          # Pokus o sestavení bootovacího obrazu
           export USE_HOST_LEX=yes
           mka bootimage || echo "Standardní bootimage build selhal"
