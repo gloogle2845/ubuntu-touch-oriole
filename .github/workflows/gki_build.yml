@@ -10,6 +10,11 @@ jobs:
       - name: Priprava systemu
         run: sudo apt-get update && sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync clang lld llvm libssl-dev gcc-aarch64-linux-gnu libelf-dev
 
+      - name: Vytvoreni SWAP pameti v cloudu proti Error 137
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 12
+
       - name: Stahování zdrojových kódů pres GitHub Checkout
         uses: actions/checkout@v4
         with:
@@ -37,8 +42,8 @@ jobs:
           echo "Konfiguruji architekturu Google Tensor..."
           make gki_defconfig
           
-          echo "Spouštím hlavní kompilaci jádra..."
-          make -j$(nproc) Image
+          echo "Spouštím bezpečnou kompilaci jádra (omezení na 2 vlákna)..."
+          make -j2 Image
 
       - name: Nahrání zkompilovaného jádra ke stažení
         uses: actions/upload-artifact@v4
