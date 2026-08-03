@@ -1,4 +1,4 @@
-name: what does this do?
+name: Konecne funkcni build Pixel 6
 
 on:
   workflow_dispatch:
@@ -11,8 +11,8 @@ jobs:
         run: |
           sudo apt-get update 
           sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync clang lld llvm libssl-dev gcc-aarch64-linux-gnu libelf-dev dwarves
-          # Instalace Google nastroju pro baleni boot obrazu
-          sudo apt-get install -y abootimg android-sdk-libparseandroidboot-dev
+          # Instalace standardního abootimg nástroje
+          sudo apt-get install -y abootimg
 
       - name: Vytvoreni SWAP pameti v cloudu proti Error 137
         uses: pierotofy/set-swap-space@master
@@ -59,9 +59,6 @@ jobs:
 
       - name: Automaticke stazeni oficialniho bootloaderu a baleni
         run: |
-          # Stahneme si specialni nastroj od Google pro praci s GKI boot.img
-          git clone https://googlesource.com tools-mkbootimg
-          
           # Vytvorime vyslednou slozku, kam schovame hotovy vysledek
           mkdir output
           
