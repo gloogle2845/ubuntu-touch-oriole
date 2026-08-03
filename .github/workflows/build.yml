@@ -1,4 +1,4 @@
-name: Konecne funkcni build Pixel 6
+name: Preparing Boot Image
 
 on:
   workflow_dispatch:
