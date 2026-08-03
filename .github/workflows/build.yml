@@ -1,4 +1,4 @@
-name: boot
+name: Generating Boot Image
 
 on:
   workflow_dispatch:
@@ -11,8 +11,7 @@ jobs:
         run: |
           sudo apt-get update 
           sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync clang lld llvm libssl-dev gcc-aarch64-linux-gnu libelf-dev dwarves
-          # Instalace oficialnich Google nastroju mkbootimg
-          pip3 install git+https://googlesource.com
+          sudo apt-get install -y abootimg
 
       - name: Vytvoreni SWAP pameti v cloudu proti Error 137
         uses: pierotofy/set-swap-space@master
@@ -57,18 +56,24 @@ jobs:
           make olddefconfig
           make -j2 Image
 
-      - name: Automaticke generovani platneho GKI boot.img
+      - name: Automaticke stazeni mkbootimg a baleni do platneho boot.img
         run: |
           mkdir output
           
-          # Pomoci nainstalovaneho mkbootimg od Google vytvorime spravny boot.img s hlaveni hlavickou ANDROID!
-          # Pouzivame parametry pro GKI v4 architekturu (Pixel 6 standard)
-          mkbootimg --kernel kernel/arch/arm64/boot/Image --header_version 4 --output output/boot.img
+          # Bezpecne stazeni oficialniho skriptu od Google bez orezavani adresy
+          curl -sL https://googlesource.com | base64 --decode > mkbootimg.py
+          chmod +x mkbootimg.py
           
-          echo "Platny boot.img s Boot Magic hlavickou byl uspesne vygenerovan!"
+          echo "Balím jádro do formátu boot.img s Android Boot Magic záhlavím..."
+          python3 mkbootimg.py \
+            --kernel kernel/arch/arm64/boot/Image \
+            --header_version 4 \
+            --output output/boot.img
+          
+          echo "Hotovo! Soubor boot.img je připraven."
 
       - name: Nahrání hotoveho obrazu ke stazeni
         uses: actions/upload-artifact@v4
         with:
-          name: Pixel6-Ubuntu-BootImage
+          name: Generating Boot Image
           path: output/boot.img
