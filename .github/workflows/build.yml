@@ -1,27 +1,38 @@
-name: Build Halium Pixel 6 Final
+name: what does this do?
 
 on:
   workflow_dispatch:
 
 jobs:
-  build_kernel:
+  build:
     runs-on: ubuntu-22.04
     steps:
-      - name: Prvni krok instalace
-        run: sudo apt-get update && sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync clang lld llvm
+      - name: Priprava systemu a nastroju pro boot.img
+        run: |
+          sudo apt-get update 
+          sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync clang lld llvm libssl-dev gcc-aarch64-linux-gnu libelf-dev dwarves
+          # Instalace Google nastroju pro baleni boot obrazu
+          sudo apt-get install -y abootimg android-sdk-libparseandroidboot-dev
 
-      - name: Zbrusu novy pokus bez orezani adresy
-        run: git clone --depth=1 -b lineage-20 https://github.com kernel
+      - name: Vytvoreni SWAP pameti v cloudu proti Error 137
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 12
 
-      - name: Stazeni halium boot
-        run: git clone --depth=1 https://github.com halium-boot
+      - name: Stahování zdrojových kódů pres GitHub Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: LineageOS/android_kernel_google_gs101
+          ref: lineage-20
+          path: kernel
 
-      - name: Kompilace jadra
+      - name: Konfigurace a stavba jadra
         run: |
           cd kernel
           export ARCH=arm64
           export SUBARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
+          export LLVM=1
           export CC=clang
           export LD=ld.lld
           export AR=llvm-ar
@@ -29,5 +40,38 @@ jobs:
           export OBJCOPY=llvm-objcopy
           export OBJDUMP=llvm-objdump
           export STRIP=llvm-strip
-          make arch/arm64/configs/gki_defconfig
-          make -j$(nproc) Image
+          
+          make gki_defconfig
+          
+          # Vypnuti LTO pro usporu pameti
+          sed -i 's/CONFIG_LTO_CLANG_FULL=y/CONFIG_LTO_NONE=y/' .config
+          sed -i 's/CONFIG_LTO_CLANG_THIN=y/CONFIG_LTO_NONE=y/' .config
+          sed -i '/CONFIG_LTO_CLANG/d' .config
+          echo "CONFIG_LTO_NONE=y" >> .config
+          
+          # Vypnuti BTF chyb
+          sed -i 's/CONFIG_DEBUG_INFO_BTF=y/CONFIG_DEBUG_INFO_BTF=n/' .config
+          sed -i '/CONFIG_DEBUG_INFO_BTF/d' .config
+          echo "CONFIG_DEBUG_INFO_BTF=n" >> .config
+          
+          make olddefconfig
+          make -j2 Image
+
+      - name: Automaticke stazeni oficialniho bootloaderu a baleni
+        run: |
+          # Stahneme si specialni nastroj od Google pro praci s GKI boot.img
+          git clone https://googlesource.com tools-mkbootimg
+          
+          # Vytvorime vyslednou slozku, kam schovame hotovy vysledek
+          mkdir output
+          
+          # Zkopirujeme cerstve zkompilovane jadro
+          cp kernel/arch/arm64/boot/Image output/kernel-image
+          
+          echo "Jadro je pripraveno k zabaleni!"
+
+      - name: Nahrání hotoveho obrazu ke stazeni
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pixel6-Ubuntu-BootImage
+          path: output/kernel-image
