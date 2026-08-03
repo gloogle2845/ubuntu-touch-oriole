@@ -11,7 +11,6 @@ jobs:
         run: |
           sudo apt-get update 
           sudo apt-get install -y bc bison build-essential cpio curl flex git kmod libssl-dev libtinfo5 python3 libncurses5-dev git-lfs jq libxml2-utils rsync clang lld llvm libssl-dev gcc-aarch64-linux-gnu libelf-dev dwarves
-          sudo apt-get install -y abootimg
 
       - name: Vytvoreni SWAP pameti v cloudu proti Error 137
         uses: pierotofy/set-swap-space@master
@@ -56,21 +55,54 @@ jobs:
           make olddefconfig
           make -j2 Image
 
-      - name: Automaticke stazeni mkbootimg a baleni do platneho boot.img
+      - name: Automaticke vyvoreni mkbootimg a baleni do platneho boot.img
         run: |
           mkdir output
           
-          # Bezpečné stažení čistého mkbootimg skriptu z GitHub zrcadla AOSP bez nutnosti base64
-          curl -sL https://githubusercontent.com -o mkbootimg.py
-          chmod +x mkbootimg.py
-          
-          echo "Balím jádro do formátu boot.img s Android Boot Magic záhlavím..."
-          python3 mkbootimg.py \
-            --kernel kernel/arch/arm64/boot/Image \
-            --header_version 4 \
-            --output output/boot.img
-          
-          echo "Hotovo! Soubor boot.img je připraven."
+          # Vytvoříme minimalistický nativní Python skript pro zabalení GKI v4 obrazu přímo z textu
+          cat << 'EOF' > mkbootimg.py
+          import os
+          import sys
+          import struct
+
+          def pad_file(f, padding):
+              pad = (padding - (f.tell() % padding)) % padding
+              f.write(b'\0' * pad)
+
+          def main():
+              kernel_path = 'kernel/arch/arm64/boot/Image'
+              output_path = 'output/boot.img'
+              
+              if not os.path.exists(kernel_path):
+                  print("Chyba: Kernel Image neexistuje!")
+                  sys.exit(1)
+                  
+              kernel_size = os.path.getsize(kernel_path)
+              page_size = 4096
+              
+              with open(output_path, 'wb') as out:
+                  # Android Boot Header v4 (GKI Standard)
+                  # Magic (8B), Kernel Size (4B), Kernel Addr (4B), Ramdisk Size (4B), Ramdisk Addr (4B)
+                  header = struct.pack('<8sIIII', b'ANDROID!', kernel_size, 0x00080000, 0, 0x01100000)
+                  # Zbytek prázdné hlavičky v4 (celkem 1584 bajtů pro verzi 4)
+                  header += b'\0' * (1584 - len(header))
+                  # Přidáme Header Version = 4
+                  header = header[:40] + struct.pack('<I', 4) + header[44:]
+                  
+                  out.write(header)
+                  pad_file(out, page_size)
+                  
+                  with open(kernel_path, 'rb') as k:
+                      out.write(k.read())
+                  pad_file(out, page_size)
+                  
+              print("Uspesne zabaleno do boot.img s verzi hlavicky v4!")
+
+          if __name__ == '__main__':
+              main()
+          EOF
+
+          python3 mkbootimg.py
 
       - name: Nahrání hotoveho obrazu ke stazeni
         uses: actions/upload-artifact@v4
