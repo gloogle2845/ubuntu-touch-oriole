@@ -60,8 +60,8 @@ jobs:
         run: |
           mkdir output
           
-          # Bezpecne stazeni oficialniho skriptu od Google bez orezavani adresy
-          curl -sL https://googlesource.com | base64 --decode > mkbootimg.py
+          # Bezpečné stažení čistého mkbootimg skriptu z GitHub zrcadla AOSP bez nutnosti base64
+          curl -sL https://githubusercontent.com -o mkbootimg.py
           chmod +x mkbootimg.py
           
           echo "Balím jádro do formátu boot.img s Android Boot Magic záhlavím..."
